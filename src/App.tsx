@@ -38,9 +38,9 @@ function App() {
   
   // Real-time progress tracking
   const [localProgressMs, setLocalProgressMs] = useState(0);
-  const lastUpdateRef = useRef<number>(Date.now());
   const lastReceivedProgressRef = useRef<number>(-1);
   const localProgressRef = useRef<number>(0);
+  const trackNameRef = useRef<string>('');
 
   useEffect(() => {
     localProgressRef.current = localProgressMs;
@@ -58,15 +58,26 @@ function App() {
           if (newState.lyrics !== undefined) merged.lyrics = newState.lyrics;
           return merged;
         });
+
+        if (newState.track && newState.track.name !== trackNameRef.current) {
+          trackNameRef.current = newState.track.name;
+          lastReceivedProgressRef.current = -1; // Force sync for new track
+        }
         
         if (newState.progressMs !== undefined) {
+          const isFirstSync = lastReceivedProgressRef.current === -1;
           const isNewPosition = newState.progressMs !== lastReceivedProgressRef.current;
-          const drift = Math.abs(newState.progressMs - localProgressRef.current);
           
-          if (isNewPosition || drift > 2500) {
-            setLocalProgressMs(newState.progressMs);
-            lastUpdateRef.current = Date.now();
+          // Only evaluate synchronization IF Windows provides a truly new position value
+          // This prevents the app from comparing its accurate timer with stale data from Windows
+          if (isNewPosition) {
+            const drift = Math.abs(newState.progressMs - localProgressRef.current);
             lastReceivedProgressRef.current = newState.progressMs;
+            
+            // Hard sync if the difference is more than 1.5 seconds (seek) or if it's the first sync
+            if (isFirstSync || drift > 1500) {
+              setLocalProgressMs(newState.progressMs);
+            }
           }
         }
       });
@@ -76,11 +87,16 @@ function App() {
   // Timer for smooth lyrics
   useEffect(() => {
     if (!appState.isPlaying) return;
+    
+    let lastTick = Date.now();
     const interval = setInterval(() => {
       const now = Date.now();
-      const elapsed = now - lastUpdateRef.current;
-      setLocalProgressMs(Math.max(0, lastReceivedProgressRef.current) + elapsed);
+      const delta = now - lastTick;
+      lastTick = now;
+      
+      setLocalProgressMs(prev => prev + delta);
     }, 50);
+    
     return () => clearInterval(interval);
   }, [appState.isPlaying]);
 
@@ -138,15 +154,15 @@ function App() {
               <Music className="w-6 h-6 text-pink-300" />
             </div>
             <div className="text-pink-100 font-medium text-lg">
-              Menunggu media diputar di Windows...
+              Waiting for music to play...
             </div>
-            <p className="text-xs text-pink-300/80 mt-1">Putar musik dari Spotify, YouTube Music, iTunes, dll.</p>
+            <p className="text-xs text-pink-300/80 mt-1">Play music from Spotify, YouTube Music, iTunes, etc.</p>
           </div>
         ) : !appState.lyrics || appState.lyrics.length === 0 ? (
           <div className="flex flex-col items-center gap-2 z-10 p-5 rounded-2xl bg-pink-900/30 border border-pink-400/20 shadow-xl shadow-pink-900/30" style={{ WebkitAppRegion: 'no-drag' } as any}>
             <div className="flex items-center gap-3 text-pink-100 font-medium text-lg text-center animate-pulse">
               <Music className="w-5 h-5 text-pink-300 animate-spin" style={{ animationDuration: '3s' }} />
-              <span>Mencari lirik: "{appState.track.name}"...</span>
+              <span>Finding lyrics: "{appState.track.name}"...</span>
             </div>
           </div>
         ) : (
@@ -206,14 +222,14 @@ function App() {
         <button 
           onClick={toggleLock} 
           className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-pink-600/80 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
-          title="Kunci Jendela (Tembus Klik)"
+          title="Lock Window (Click-Through)"
         >
           {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
         </button>
         <button 
           onClick={closeWindow} 
           className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-rose-600/90 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
-          title="Tutup"
+          title="Close"
         >
           <X size={16} />
         </button>

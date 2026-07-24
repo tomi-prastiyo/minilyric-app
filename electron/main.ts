@@ -25,17 +25,34 @@ async function initKuroshiro() {
   console.log('Kuroshiro initialized');
 }
 
-// Fetch Lyrics from LRCLIB
+// Fetch Lyrics from LRCLIB with fallback
 async function fetchLyrics(trackName: string, artistName: string, durationMs: number) {
   try {
     const params: any = { track_name: trackName, artist_name: artistName };
     if (durationMs > 0) {
       params.duration = Math.round(durationMs / 1000);
     }
-    const res = await axios.get('https://lrclib.net/api/get', { params });
     
-    if (res.data && res.data.syncedLyrics) {
-      const lines = res.data.syncedLyrics.split('\n');
+    let lyricData = null;
+    
+    try {
+      // Try exact match first
+      const res = await axios.get('https://lrclib.net/api/get', { params });
+      lyricData = res.data;
+    } catch (err: any) {
+      if (err.response && err.response.status === 404) {
+        // Fallback to search API if not exactly matched
+        const searchParams: any = { q: `${trackName} ${artistName}` };
+        const searchRes = await axios.get('https://lrclib.net/api/search', { params: searchParams });
+        if (searchRes.data && searchRes.data.length > 0) {
+          // Find the first result with synced lyrics
+          lyricData = searchRes.data.find((track: any) => track.syncedLyrics);
+        }
+      }
+    }
+    
+    if (lyricData && lyricData.syncedLyrics) {
+      const lines = lyricData.syncedLyrics.split('\n');
       const parsedLyrics = [];
 
       for (const line of lines) {
@@ -77,9 +94,10 @@ async function startPolling() {
     
     try {
       const sessions = await getActiveSessions();
-      const activeSession = sessions.find(s => s.playbackStatus === 'playing') || sessions[0];
+      const validSessions = sessions.filter(s => s.title && s.title.trim() !== '');
+      const activeSession = validSessions.find(s => s.playbackStatus === 'playing') || validSessions[0];
       
-      if (!activeSession || !activeSession.title) {
+      if (!activeSession) {
         mainWindow.webContents.send('app-state', { isPlaying: false, track: null });
         return;
       }
