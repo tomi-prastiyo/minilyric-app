@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Lock, Unlock, X, GripHorizontal } from 'lucide-react';
+import { Lock, Unlock, X, Music } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // --- TYPES ---
@@ -39,6 +39,12 @@ function App() {
   // Real-time progress tracking
   const [localProgressMs, setLocalProgressMs] = useState(0);
   const lastUpdateRef = useRef<number>(Date.now());
+  const lastReceivedProgressRef = useRef<number>(-1);
+  const localProgressRef = useRef<number>(0);
+
+  useEffect(() => {
+    localProgressRef.current = localProgressMs;
+  }, [localProgressMs]);
 
   useEffect(() => {
     if (window.electron?.requestState) {
@@ -54,8 +60,14 @@ function App() {
         });
         
         if (newState.progressMs !== undefined) {
-          setLocalProgressMs(newState.progressMs);
-          lastUpdateRef.current = Date.now();
+          const isNewPosition = newState.progressMs !== lastReceivedProgressRef.current;
+          const drift = Math.abs(newState.progressMs - localProgressRef.current);
+          
+          if (isNewPosition || drift > 2500) {
+            setLocalProgressMs(newState.progressMs);
+            lastUpdateRef.current = Date.now();
+            lastReceivedProgressRef.current = newState.progressMs;
+          }
         }
       });
     }
@@ -67,10 +79,10 @@ function App() {
     const interval = setInterval(() => {
       const now = Date.now();
       const elapsed = now - lastUpdateRef.current;
-      setLocalProgressMs((appState.progressMs || 0) + elapsed);
-    }, 100);
+      setLocalProgressMs(Math.max(0, lastReceivedProgressRef.current) + elapsed);
+    }, 50);
     return () => clearInterval(interval);
-  }, [appState.isPlaying, appState.progressMs]);
+  }, [appState.isPlaying]);
 
   // Sync active lyric line
   useEffect(() => {
@@ -115,34 +127,26 @@ function App() {
 
   return (
     <div 
-      className={`relative w-full h-full flex flex-col group transition-colors duration-300 ${!isLocked ? 'bg-black/80' : 'bg-transparent'}`}
-      style={{ WebkitAppRegion: 'no-drag' } as any}
+      className={`relative w-full h-full flex flex-col group transition-colors duration-500 ${!isLocked ? 'bg-rose-950/60 backdrop-blur-sm shadow-inner shadow-pink-500/20' : 'bg-transparent'}`}
+      style={{ WebkitAppRegion: isLocked ? 'no-drag' : 'drag' } as any}
     >
-      
-      {!isLocked && (
-        <div 
-          className="absolute top-0 left-0 right-0 h-6 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity z-50 cursor-move"
-          style={{ WebkitAppRegion: 'drag' } as any}
-        >
-          <div className="bg-black/50 rounded-full px-4 py-1 mt-2">
-            <GripHorizontal size={14} className="text-white/50" />
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-hidden relative flex flex-col items-center justify-center pt-4" style={{ WebkitAppRegion: 'no-drag' } as any}>
+      <div className="flex-1 overflow-hidden relative flex flex-col items-center justify-center pt-4">
         
         {!appState.track ? (
-          <div className="flex flex-col items-center gap-2 z-10 p-6 rounded-xl bg-black/40 text-center">
-            <div className="text-white/70 font-medium text-lg">
+          <div className="flex flex-col items-center gap-3 z-10 p-6 rounded-2xl bg-pink-900/30 text-center border border-pink-400/20 shadow-xl shadow-pink-900/30 animate-pulse" style={{ WebkitAppRegion: 'no-drag' } as any}>
+            <div className="p-3 bg-pink-500/20 rounded-full">
+              <Music className="w-6 h-6 text-pink-300" />
+            </div>
+            <div className="text-pink-100 font-medium text-lg">
               Menunggu media diputar di Windows...
             </div>
-            <p className="text-xs text-gray-400 mt-2">Putar musik dari Spotify, YouTube Music, iTunes, dll.</p>
+            <p className="text-xs text-pink-300/80 mt-1">Putar musik dari Spotify, YouTube Music, iTunes, dll.</p>
           </div>
         ) : !appState.lyrics || appState.lyrics.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 z-10 p-4 rounded-xl bg-black/40">
-            <div className="text-white/70 font-medium text-lg text-center">
-              Mencari lirik: "{appState.track.name}"...
+          <div className="flex flex-col items-center gap-2 z-10 p-5 rounded-2xl bg-pink-900/30 border border-pink-400/20 shadow-xl shadow-pink-900/30" style={{ WebkitAppRegion: 'no-drag' } as any}>
+            <div className="flex items-center gap-3 text-pink-100 font-medium text-lg text-center animate-pulse">
+              <Music className="w-5 h-5 text-pink-300 animate-spin" style={{ animationDuration: '3s' }} />
+              <span>Mencari lirik: "{appState.track.name}"...</span>
             </div>
           </div>
         ) : (
@@ -150,9 +154,10 @@ function App() {
             ref={scrollRef}
             className="w-full h-full overflow-y-auto hide-scrollbar px-8 py-[60px] pb-[80px]"
             style={{ 
+              WebkitAppRegion: 'no-drag', // Allows scrolling without dragging the window
               maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)'
-            }}
+            } as any}
           >
             <AnimatePresence>
               {appState.lyrics.map((line, index) => {
@@ -162,16 +167,21 @@ function App() {
                 return (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`text-center transition-all duration-300 min-h-[30px] my-2 ${
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className={`text-center transition-all duration-500 min-h-[30px] my-3 ${
                       isActive 
-                        ? 'text-3xl font-extrabold text-white text-shadow-glow scale-105' 
+                        ? 'text-3xl font-extrabold text-pink-50 scale-110 tracking-wide' 
                         : isPassed
-                          ? 'text-xl font-semibold text-white/40'
-                          : 'text-xl font-semibold text-white/30'
+                          ? 'text-xl font-semibold text-pink-200/50'
+                          : 'text-xl font-semibold text-pink-200/30'
                     }`}
-                    style={{ textShadow: isActive ? '0 0 20px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.5)' }}
+                    style={{ 
+                      textShadow: isActive 
+                        ? '0 0 25px rgba(244,114,182,0.9), 0 0 50px rgba(219,39,119,0.5)' 
+                        : '0 2px 5px rgba(0,0,0,0.6)' 
+                    }}
                   >
                     {line.text}
                   </motion.div>
@@ -184,7 +194,7 @@ function App() {
       </div>
 
       <div 
-        className={`absolute top-2 right-2 p-2 flex gap-2 z-[60] transition-opacity duration-300 ${isLocked ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}
+        className={`absolute top-3 right-3 p-2 flex gap-2 z-[60] transition-opacity duration-300 ${isLocked ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}
         style={{ WebkitAppRegion: 'no-drag' } as any}
         onMouseEnter={() => {
           if (isLocked && window.electron?.windowControl) window.electron.windowControl('capture-mouse');
@@ -193,11 +203,19 @@ function App() {
           if (isLocked && window.electron?.windowControl) window.electron.windowControl('ignore-mouse');
         }}
       >
-        <button onClick={toggleLock} className="cursor-pointer p-2 rounded-md bg-black/40 hover:bg-black/70 text-white transition shadow-sm flex items-center justify-center pointer-events-auto backdrop-blur-sm" title="Kunci Jendela (Tembus Klik)">
-          {isLocked ? <Lock size={15} /> : <Unlock size={15} />}
+        <button 
+          onClick={toggleLock} 
+          className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-pink-600/80 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
+          title="Kunci Jendela (Tembus Klik)"
+        >
+          {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
         </button>
-        <button onClick={closeWindow} className="cursor-pointer p-2 rounded-md bg-black/40 hover:bg-red-600 text-white transition shadow-sm flex items-center justify-center pointer-events-auto backdrop-blur-sm" title="Tutup">
-          <X size={15} />
+        <button 
+          onClick={closeWindow} 
+          className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-rose-600/90 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
+          title="Tutup"
+        >
+          <X size={16} />
         </button>
       </div>
 
