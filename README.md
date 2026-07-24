@@ -1,32 +1,47 @@
-# React + TypeScript + Vite
+# MiniLyric 🎵
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A sleek, modern, minimal desktop lyrics widget for Windows. 
+MiniLyric stays on top of your windows, providing beautifully synchronized, glassmorphism-styled lyrics for whatever music you're playing globally on Windows 10/11.
 
-Currently, two official plugins are available:
+![MiniLyric Logo](public/icon.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
+- **Universal Music Support**: Works instantly with Spotify, YouTube Music (via modern browsers), Apple Music, VLC, and the new Windows 11 Media Player using modern Windows SMTC.
+- **Synchronized Lyrics**: Automatically fetches real-time synced lyrics from LRCLIB.
+- **Romaji Conversion**: Automatically translates and spaces Japanese Kanji/Kana to Romaji using Kuroshiro for easy reading.
+- **Frictionless UI**: A stunning pink glassmorphism aesthetic that can be "locked" to become completely transparent and click-through, ensuring it never interrupts your workflow.
+- **Smart Tracking**: Never jumps around or stutters! Smoothly tracks music progress even during pauses or skips.
 
-## React Compiler
+## 🚀 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
+- Node.js 18+
+- Windows 10 or 11 (Requires System Media Transport Controls)
 
-## Expanding the Oxlint configuration
+### Installation
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Run `npm run dev` to start the app in development mode.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### Building for Production
+To build a `.exe` installer for Windows:
+```bash
+npm run build
 ```
+The installer will be generated inside the `release/` folder.
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 🎨 How to Use
+- **Start Music**: Simply play any music on a supported modern media player.
+- **Move Window**: Click and drag any empty space in the widget to move it around.
+- **Lock Window**: Click the Lock icon in the top right to make the widget click-through. The controls will disappear.
+- **Unlock Window**: Hover your mouse over the very top-right corner of the lyrics widget, and the unlock button will gracefully appear.
+
+## 🛠 Tech Stack
+- Electron & Vite
+- React 19 & Tailwind CSS 4
+- Framer Motion (for smooth lyric animations)
+- Kuroshiro (for Romaji processing)
+- windows-media-sessions (for SMTC tracking)
+
+## 📝 Note on Classic Windows Media Player
+Please note that the classic "Windows Media Player" (WMP 12 from Windows 7 era) is **not supported**, as it does not broadcast metadata to the modern Windows SMTC system. Please use modern alternatives for local files.

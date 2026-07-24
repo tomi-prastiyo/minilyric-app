@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Lock, Unlock, X, Music } from 'lucide-react';
+import { Lock, Unlock, X, Music, Pin, PinOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // --- TYPES ---
@@ -32,6 +32,7 @@ declare global {
 
 function App() {
   const [isLocked, setIsLocked] = useState(false);
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(true);
   const [appState, setAppState] = useState<AppState>({});
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,14 @@ function App() {
     }
   };
 
+  const toggleAlwaysOnTop = () => {
+    const newTop = !isAlwaysOnTop;
+    setIsAlwaysOnTop(newTop);
+    if (window.electron?.windowControl) {
+      window.electron.windowControl('toggle-top', newTop);
+    }
+  };
+
   const closeWindow = () => {
     if (window.electron?.windowControl) {
       window.electron.windowControl('close');
@@ -193,6 +202,13 @@ function App() {
         )}
 
         <div className="flex gap-2 ml-auto pr-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          <button 
+            onClick={toggleAlwaysOnTop} 
+            className={`cursor-pointer p-2 rounded-lg transition-colors shadow-sm flex items-center justify-center backdrop-blur-md border border-pink-400/20 ${isAlwaysOnTop ? 'bg-pink-600/80 hover:bg-pink-500/90 text-white' : 'bg-pink-900/30 hover:bg-pink-600/60 text-pink-100'}`}
+            title="Toggle Always on Top"
+          >
+            {isAlwaysOnTop ? <Pin size={14} /> : <PinOff size={14} />}
+          </button>
           <button 
             onClick={toggleLock} 
             className="cursor-pointer p-2 rounded-lg bg-pink-900/30 hover:bg-pink-600/60 text-pink-100 transition-colors shadow-sm flex items-center justify-center backdrop-blur-md border border-pink-400/20" 

@@ -141,6 +141,7 @@ function createWindow() {
     frame: false,
     alwaysOnTop: true,
     hasShadow: false,
+    icon: path.join(__dirname, isDev ? '../public/icon.png' : '../dist/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -159,7 +160,7 @@ function createWindow() {
   mainWindow.setSkipTaskbar(true);
 
   // Click-through handling
-  ipcMain.on('window-control', (_, action) => {
+  ipcMain.on('window-control', (event, action, value) => {
     if (!mainWindow) return;
     if (action === 'close') {
       mainWindow.close();
@@ -167,6 +168,8 @@ function createWindow() {
       mainWindow.setIgnoreMouseEvents(true, { forward: true });
     } else if (action === 'capture-mouse') {
       mainWindow.setIgnoreMouseEvents(false);
+    } else if (action === 'toggle-top') {
+      mainWindow.setAlwaysOnTop(!!value);
     }
   });
 
