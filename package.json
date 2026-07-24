@@ -1,5 +1,19 @@
 {
   "name": "minilyric-app",
+  "description": "A sleek, glassmorphism desktop lyrics widget for Windows that tracks globally playing music via SMTC.",
+  "author": "",
+  "license": "MIT",
+  "keywords": [
+    "lyrics",
+    "widget",
+    "smtc",
+    "electron",
+    "react",
+    "windows",
+    "desktop",
+    "music",
+    "karaoke"
+  ],
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -51,6 +65,10 @@
       {
         "from": "node_modules/windows-media-sessions/bin",
         "to": "bin"
+      },
+      {
+        "from": "node_modules/kuromoji/dict",
+        "to": "dict"
       }
     ],
     "win": {

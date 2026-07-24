@@ -23,7 +23,7 @@ interface AppState {
 declare global {
   interface Window {
     electron: {
-      windowControl: (action: 'close' | 'ignore-mouse' | 'capture-mouse') => void;
+      windowControl: (action: 'close' | 'ignore-mouse' | 'capture-mouse' | 'toggle-top', value?: boolean) => void;
       requestState: () => void;
       onAppState: (callback: (state: AppState) => void) => void;
     };

@@ -20,9 +20,18 @@ let pollingInterval: NodeJS.Timeout | null = null;
 
 // Initialize Kuroshiro for Romaji conversion
 async function initKuroshiro() {
-  kuroshiro = new Kuroshiro();
-  await kuroshiro.init(new KuromojiAnalyzer());
-  console.log('Kuroshiro initialized');
+  try {
+    kuroshiro = new Kuroshiro();
+    const dictPath = isDev 
+      ? path.join(__dirname, '..', 'node_modules', 'kuromoji', 'dict')
+      : path.join(process.resourcesPath, 'dict');
+    
+    await kuroshiro.init(new KuromojiAnalyzer({ dictPath }));
+    console.log('Kuroshiro initialized');
+  } catch (e) {
+    console.error('Kuroshiro failed to initialize:', e);
+    kuroshiro = null;
+  }
 }
 
 // Fetch Lyrics from LRCLIB with fallback
@@ -158,6 +167,7 @@ function createWindow() {
 
   // Hide from taskbar
   mainWindow.setSkipTaskbar(true);
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
   // Click-through handling
   ipcMain.on('window-control', (event, action, value) => {
@@ -169,7 +179,7 @@ function createWindow() {
     } else if (action === 'capture-mouse') {
       mainWindow.setIgnoreMouseEvents(false);
     } else if (action === 'toggle-top') {
-      mainWindow.setAlwaysOnTop(!!value);
+      mainWindow.setAlwaysOnTop(!!value, 'screen-saver');
     }
   });
 
