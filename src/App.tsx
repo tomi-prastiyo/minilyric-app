@@ -143,34 +143,95 @@ function App() {
 
   return (
     <div 
-      className={`relative w-full h-full flex flex-col group transition-colors duration-500 ${!isLocked ? 'bg-rose-950/60 backdrop-blur-sm shadow-inner shadow-pink-500/20' : 'bg-transparent'}`}
+      className={`relative w-full h-full flex flex-col group transition-all duration-500 ${!isLocked ? 'bg-pink-950/40 backdrop-blur-md border border-pink-500/10 shadow-2xl' : 'bg-transparent'}`}
       style={{ WebkitAppRegion: isLocked ? 'no-drag' : 'drag' } as any}
     >
-      <div className="flex-1 overflow-hidden relative flex flex-col items-center justify-center pt-4">
+      {/* Invisible Hover Zone for Unlocking (Only when locked) */}
+      {isLocked && (
+        <div 
+          className="absolute top-0 right-0 w-32 h-20 z-[70]"
+          onMouseEnter={() => {
+            if (window.electron?.windowControl) window.electron.windowControl('capture-mouse');
+          }}
+          onMouseLeave={() => {
+            if (isLocked && window.electron?.windowControl) window.electron.windowControl('ignore-mouse');
+          }}
+        >
+          <div className="absolute top-3 right-3 opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <button 
+              onClick={toggleLock} 
+              className="cursor-pointer p-2 rounded-lg bg-pink-900/80 hover:bg-pink-600/80 text-pink-100 transition-colors shadow-md flex items-center justify-center backdrop-blur-md border border-pink-400/20"
+              title="Unlock Window"
+            >
+              <Unlock size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Minimal Header (Hidden when locked) */}
+      <div 
+        className={`absolute top-0 left-0 right-0 p-3 flex items-center justify-between z-[60] transition-all duration-300 ${isLocked ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0'}`}
+        style={{ WebkitAppRegion: 'drag' } as any}
+      >
+        {appState.track ? (
+          <div className="flex items-center gap-3 pl-2">
+            <div className="w-9 h-9 rounded-full bg-pink-500/20 flex items-center justify-center border border-pink-400/20 shadow-sm animate-pulse" style={{ animationDuration: appState.isPlaying ? '3s' : '0s' }}>
+              <Music size={16} className="text-pink-300" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-sm font-bold leading-tight truncate max-w-[200px] drop-shadow-md">
+                {appState.track.name}
+              </span>
+              <span className="text-pink-200/90 text-xs truncate max-w-[200px] drop-shadow-md">
+                {appState.track.artists[0]?.name}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="pl-3 text-pink-200/80 text-sm font-medium">MiniLyric</div>
+        )}
+
+        <div className="flex gap-2 ml-auto pr-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          <button 
+            onClick={toggleLock} 
+            className="cursor-pointer p-2 rounded-lg bg-pink-900/30 hover:bg-pink-600/60 text-pink-100 transition-colors shadow-sm flex items-center justify-center backdrop-blur-md border border-pink-400/20" 
+            title="Lock Window (Click-Through)"
+          >
+            {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+          </button>
+          <button 
+            onClick={closeWindow} 
+            className="cursor-pointer p-2 rounded-lg bg-pink-900/30 hover:bg-rose-600/80 text-pink-100 transition-colors shadow-sm flex items-center justify-center backdrop-blur-md border border-pink-400/20" 
+            title="Close"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden relative flex flex-col items-center justify-center mt-6">
         
         {!appState.track ? (
-          <div className="flex flex-col items-center gap-3 z-10 p-6 rounded-2xl bg-pink-900/30 text-center border border-pink-400/20 shadow-xl shadow-pink-900/30 animate-pulse" style={{ WebkitAppRegion: 'no-drag' } as any}>
-            <div className="p-3 bg-pink-500/20 rounded-full">
-              <Music className="w-6 h-6 text-pink-300" />
+          <div className="flex flex-col items-center gap-2 z-10 p-5 rounded-xl bg-pink-900/20 text-center border border-pink-400/10 shadow-lg" style={{ WebkitAppRegion: 'no-drag' } as any}>
+            <Music className="w-5 h-5 text-pink-300/80 mb-1" />
+            <div className="text-pink-100 font-medium text-sm">
+              Waiting for music...
             </div>
-            <div className="text-pink-100 font-medium text-lg">
-              Waiting for music to play...
-            </div>
-            <p className="text-xs text-pink-300/80 mt-1">Play music from Spotify, YouTube Music, iTunes, etc.</p>
           </div>
         ) : !appState.lyrics || appState.lyrics.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 z-10 p-5 rounded-2xl bg-pink-900/30 border border-pink-400/20 shadow-xl shadow-pink-900/30" style={{ WebkitAppRegion: 'no-drag' } as any}>
-            <div className="flex items-center gap-3 text-pink-100 font-medium text-lg text-center animate-pulse">
-              <Music className="w-5 h-5 text-pink-300 animate-spin" style={{ animationDuration: '3s' }} />
-              <span>Finding lyrics: "{appState.track.name}"...</span>
+          <div className="flex flex-col items-center gap-2 z-10 p-4 rounded-xl bg-pink-900/20 border border-pink-400/10 shadow-lg" style={{ WebkitAppRegion: 'no-drag' } as any}>
+            <div className="flex items-center gap-2 text-pink-100 font-medium text-sm text-center">
+              <Music className="w-4 h-4 text-pink-300 animate-bounce" />
+              <span>Searching lyrics...</span>
             </div>
           </div>
         ) : (
           <div 
             ref={scrollRef}
-            className="w-full h-full overflow-y-auto hide-scrollbar px-8 py-[60px] pb-[80px]"
+            className="w-full h-full overflow-y-auto hide-scrollbar px-6 py-[30px] pb-[60px]"
             style={{ 
-              WebkitAppRegion: 'no-drag', // Allows scrolling without dragging the window
+              WebkitAppRegion: 'no-drag',
               maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)'
             } as any}
@@ -183,20 +244,20 @@ function App() {
                 return (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, y: 15 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`text-center transition-all duration-500 min-h-[30px] my-3 ${
+                    className={`text-center transition-all duration-500 min-h-[28px] my-2 ${
                       isActive 
-                        ? 'text-3xl font-extrabold text-pink-50 scale-110 tracking-wide' 
+                        ? 'text-2xl font-bold text-white scale-105 tracking-wide' 
                         : isPassed
-                          ? 'text-xl font-semibold text-pink-200/50'
-                          : 'text-xl font-semibold text-pink-200/30'
+                          ? 'text-lg font-medium text-pink-100/40'
+                          : 'text-lg font-medium text-pink-100/20'
                     }`}
                     style={{ 
                       textShadow: isActive 
-                        ? '0 0 25px rgba(244,114,182,0.9), 0 0 50px rgba(219,39,119,0.5)' 
-                        : '0 2px 5px rgba(0,0,0,0.6)' 
+                        ? '0 0 15px rgba(244,114,182,0.5), 0 2px 4px rgba(0,0,0,0.8)' 
+                        : '0 1px 3px rgba(0,0,0,0.8)' 
                     }}
                   >
                     {line.text}
@@ -208,33 +269,6 @@ function App() {
         )}
 
       </div>
-
-      <div 
-        className={`absolute top-3 right-3 p-2 flex gap-2 z-[60] transition-opacity duration-300 ${isLocked ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}
-        style={{ WebkitAppRegion: 'no-drag' } as any}
-        onMouseEnter={() => {
-          if (isLocked && window.electron?.windowControl) window.electron.windowControl('capture-mouse');
-        }}
-        onMouseLeave={() => {
-          if (isLocked && window.electron?.windowControl) window.electron.windowControl('ignore-mouse');
-        }}
-      >
-        <button 
-          onClick={toggleLock} 
-          className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-pink-600/80 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
-          title="Lock Window (Click-Through)"
-        >
-          {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
-        </button>
-        <button 
-          onClick={closeWindow} 
-          className="cursor-pointer p-2 rounded-xl bg-pink-900/40 hover:bg-rose-600/90 text-pink-100 transition-all shadow-md shadow-pink-950/50 flex items-center justify-center pointer-events-auto backdrop-blur-md border border-pink-400/20 hover:scale-110" 
-          title="Close"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
     </div>
   );
 }

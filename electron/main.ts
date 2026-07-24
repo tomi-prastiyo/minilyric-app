@@ -128,9 +128,15 @@ async function startPolling() {
 }
 
 function createWindow() {
+  const { screen } = require('electron');
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width } = primaryDisplay.workAreaSize;
+
   mainWindow = new BrowserWindow({
-    width: 600,
-    height: 120,
+    width: 500,
+    height: 280,
+    x: width - 520,
+    y: 30,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
